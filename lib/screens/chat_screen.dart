@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
-import '../services/firebase_ai_service.dart';
 import '../widgets/message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -15,41 +14,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final _messages = <ChatMessage>[];
   bool _isGenerating = false;
-  bool _isInitializing = true;
-  String _statusMessage = 'Initializing...';
-
-  late final FirebaseAIService _aiService;
-
-  @override
-  void initState() {
-    super.initState();
-    _initServices();
-  }
-
-  Future<void> _initServices() async {
-    _aiService = FirebaseAIService();
-
-    try {
-      setState(() => _statusMessage = 'Connecting to cloud AI...');
-      await _aiService.initialize();
-
-      setState(() {
-        _isInitializing = false;
-        _statusMessage = 'Ready';
-      });
-    } catch (e) {
-      setState(() {
-        _isInitializing = false;
-        _statusMessage = 'Error: $e';
-      });
-    }
-  }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    _aiService.dispose();
     super.dispose();
   }
 
@@ -73,34 +42,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       _messages.add(ChatMessage(text: text, isUser: true));
-      _messages.add(ChatMessage(text: '', isUser: false));
       _isGenerating = true;
     });
     _scrollToBottom();
 
-    try {
-      final buffer = StringBuffer();
-      await for (final chunk
-          in _aiService.generateResponseStream(text)) {
-        buffer.write(chunk);
-        setState(() {
-          _messages.last = ChatMessage(
-            text: buffer.toString(),
-            isUser: false,
-          );
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      setState(() {
-        _messages.last = ChatMessage(
-          text: 'Error: $e',
-          isUser: false,
-        );
-      });
-    } finally {
-      setState(() => _isGenerating = false);
-    }
+    // Echo response (AI service not connected yet)
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _messages.add(ChatMessage(
+        text: 'Echo: $text\n\n(AI service not connected yet)',
+        isUser: false,
+      ));
+      _isGenerating = false;
+    });
+    _scrollToBottom();
   }
 
   @override
@@ -112,19 +68,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Initialization progress
-          if (_isInitializing)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text(_statusMessage),
-                  const SizedBox(height: 8),
-                  const LinearProgressIndicator(),
-                ],
-              ),
-            ),
-
           // Messages
           Expanded(
             child: _messages.isEmpty
