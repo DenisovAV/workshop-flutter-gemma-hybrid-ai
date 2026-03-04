@@ -31,7 +31,7 @@ A Flutter chat application that progressively integrates AI capabilities:
 
 ### What you'll need
 
-- Flutter 3.24+ installed
+- Flutter 3.38+ installed
 - Firebase CLI (`firebase-tools`)
 - A Google account (for Firebase)
 - A HuggingFace account (for model downloads)
@@ -60,7 +60,7 @@ Duration: 5
 ### Clone the repository
 
 ```bash
-git clone https://github.com/DenisovAV/workshop-flutter-gemma-hybrid-ai.git
+git clone git@github.com:DenisovAV/workshop-flutter-gemma-hybrid-ai.git
 cd workshop-flutter-gemma-hybrid-ai
 git checkout step-00-starter
 ```

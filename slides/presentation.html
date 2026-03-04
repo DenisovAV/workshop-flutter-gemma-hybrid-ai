@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hybrid AI in Flutter: Workshop</title>
+
+  <!-- Reveal.js core -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <section id="slide-0-prereqs">
+        <p class="step-badge">Step 0</p>
+        <h2>Prerequisites &amp; Setup</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <h3><i class="fa-solid fa-wrench icon-secondary"></i> Install</h3>
+              <ul class="text-lg">
+                <li><strong>Flutter 3.38+</strong> &mdash; <a href="https://docs.flutter.dev/get-started/install" style="color: var(--secondary-color);">Install guide</a></li>
+                <li>Run <code style="font-family: var(--mono-font); color: var(--accent-green);">flutter doctor</code> &mdash; all green</li>
+                <li>IDE: VS Code or Android Studio</li>
+                <li>Android / iOS device or emulator</li>
+              </ul>
+            </div>
+            <div>
+              <h3><i class="fa-solid fa-rocket icon-primary"></i> Clone &amp; Run</h3>
+              <div class="code-block"><span class="cm"># Clone the workshop repo</span>
+git clone git@github.com:DenisovAV/\
+  workshop-flutter-gemma-hybrid-ai.git
+
+cd workshop-flutter-gemma-hybrid-ai
+git checkout step-00-starter
+
+<span class="cm"># Run the starter</span>
+flutter pub get
+flutter run</div>
+            </div>
+          </div>
+          <div class="warning-box" style="margin-top: 16px;">
+            <p><i class="fa-solid fa-circle-info icon-orange"></i> &nbsp;You should see an echo chat &mdash; messages come back with <em>"AI service not connected yet"</em></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-1-firebase">
+        <p class="step-badge">Step 1</p>
+        <h2>Firebase Setup</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <h3><i class="fa-solid fa-fire icon-orange"></i> Firebase Console</h3>
+              <ul>
+                <li>Go to <strong>console.firebase.google.com</strong></li>
+                <li>Create project: <code style="font-family: var(--mono-font); color: var(--accent-green);">workshop-hybrid-ai</code></li>
+                <li>Navigate to <strong>AI Logic</strong> in sidebar</li>
+                <li>Enable <strong>Gemini API</strong></li>
+              </ul>
+            </div>
+            <div>
+              <h3><i class="fa-solid fa-terminal icon-secondary"></i> Configure</h3>
+              <div class="code-block"><span class="cm"># Install FlutterFire CLI</span>
+dart pub global activate flutterfire_cli
+
+<span class="cm"># Configure your app</span>
+flutterfire configure \
+  --project=YOUR_PROJECT_ID</div>
+            </div>
+          </div>
+          <div style="margin-top: 16px;">
+            <h3><i class="fa-solid fa-box-open icon-green"></i> Uncomment Dependencies</h3>
+            <div class="code-block"><span class="cm"># pubspec.yaml</span>
+<span class="kw">firebase_core</span>: ^4.4.0
+<span class="kw">firebase_ai</span>: ^3.8.0</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-2-cloud">
+        <p class="step-badge">Step 2</p>
+        <h2>Cloud Chat &mdash; FirebaseAIService</h2>
+        <div class="content">
+          <div class="code-block" style="font-size: 11pt; line-height: 1.4;"><span class="kw">import</span> <span class="str">'package:firebase_ai/firebase_ai.dart'</span>;
+
+<span class="kw">class</span> <span class="ty">FirebaseAIService</span> <span class="kw">implements</span> <span class="ty">AIService</span> {
+  <span class="ty">GenerativeModel</span>? _model;
+
+  <span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">initialize</span>() <span class="kw">async</span> {
+    <span class="kw">final</span> ai = <span class="ty">FirebaseAI</span>.<span class="fn">googleAI</span>();
+    _model = ai.<span class="fn">generativeModel</span>(model: <span class="str">'gemini-2.5-flash'</span>);
+  }
+
+  <span class="ty">Stream</span>&lt;<span class="ty">String</span>&gt; <span class="fn">generateResponseStream</span>(<span class="ty">String</span> prompt) <span class="kw">async*</span> {
+    <span class="kw">final</span> stream = _model!.<span class="fn">generateContentStream</span>([<span class="ty">Content</span>.<span class="fn">text</span>(prompt)]);
+    <span class="kw">await for</span> (<span class="kw">final</span> chunk <span class="kw">in</span> stream) {
+      <span class="kw">if</span> (chunk.text != <span class="kw">null</span>) <span class="kw">yield</span> chunk.text!;
+    }
+  }
+}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px;">
+            <div class="card">
+              <h3><i class="fa-solid fa-bolt icon-orange"></i> main.dart</h3>
+              <p>Add <code style="font-family: var(--mono-font); color: var(--accent-green);">Firebase.initializeApp()</code> before <code style="font-family: var(--mono-font); color: var(--accent-green);">runApp()</code></p>
+            </div>
+            <div class="card">
+              <h3><i class="fa-solid fa-stream icon-secondary"></i> Streaming</h3>
+              <p><code style="font-family: var(--mono-font); color: var(--accent-green);">generateContentStream</code> returns tokens one by one for real-time UI</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-3-platform">
+        <p class="step-badge">Step 3</p>
+        <h2>Platform Setup</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <div class="card">
+              <h3><i class="fa-brands fa-apple icon-secondary"></i> iOS</h3>
+              <div class="code-block" style="font-size: 10pt;"><span class="cm"># Podfile</span>
+platform :ios, <span class="str">'16.0'</span>
+use_frameworks! :linkage =&gt; :static
+
+<span class="cm"># Runner.entitlements</span>
+extended-virtual-addressing
+increased-memory-limit</div>
+            </div>
+            <div class="card">
+              <h3><i class="fa-brands fa-android icon-green"></i> Android</h3>
+              <div class="code-block" style="font-size: 10pt;"><span class="cm">&lt;!-- AndroidManifest.xml --&gt;</span>
+<span class="kw">&lt;uses-native-library</span>
+  android:name=
+    <span class="str">"libOpenCL.so"</span>
+  android:required=
+    <span class="str">"false"</span> <span class="kw">/&gt;</span>
+<span class="cm">&lt;!-- +libOpenCL-car.so --&gt;</span>
+<span class="cm">&lt;!-- +libOpenCL-pixel.so --&gt;</span></div>
+            </div>
+            <div class="card">
+              <h3><i class="fa-brands fa-chrome icon-orange"></i> Web</h3>
+              <div class="code-block" style="font-size: 10pt;"><span class="cm">&lt;!-- index.html --&gt;</span>
+<span class="kw">&lt;script</span> type=<span class="str">"module"</span><span class="kw">&gt;</span>
+<span class="kw">import</span> {
+  FilesetResolver,
+  LlmInference
+} <span class="kw">from</span>
+  <span class="str">'@mediapipe/tasks-genai<br>   @latest'</span>;
+<span class="kw">&lt;/script&gt;</span></div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px;">
+            <div class="card">
+              <h3><i class="fa-solid fa-key icon-primary"></i> HuggingFace Token</h3>
+              <p><strong>huggingface.co/settings/tokens</strong> &rarr; New token &rarr; Read access</p>
+            </div>
+            <div class="card">
+              <h3><i class="fa-solid fa-box-open icon-green"></i> Dependency</h3>
+              <p>Uncomment <code style="font-family: var(--mono-font); color: var(--accent-green);">flutter_gemma: ^0.12.4</code> in pubspec.yaml</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-4-local">
+        <p class="step-badge">Step 4</p>
+        <h2>Local Inference &mdash; LocalAIService</h2>
+        <div class="content">
+          <div class="code-block" style="font-size: 11pt; line-height: 1.35;"><span class="ty">FlutterGemma</span>.<span class="fn">initialize</span>();
+
+<span class="cm">// Download model (~500 MB)</span>
+<span class="kw">await</span> <span class="ty">FlutterGemma</span>.<span class="fn">installModel</span>(modelType: <span class="ty">ModelType</span>.gemmaIt)
+    .<span class="fn">fromNetwork</span>(modelUrl, token: hfToken)
+    .<span class="fn">withProgress</span>((p) =&gt; onProgress(p / <span class="num">100</span>)).<span class="fn">install</span>();
+
+<span class="cm">// Create model + chat session</span>
+<span class="kw">final</span> model = <span class="kw">await</span> <span class="ty">FlutterGemma</span>.<span class="fn">getActiveModel</span>(
+  maxTokens: <span class="num">1024</span>, preferredBackend: <span class="ty">PreferredBackend</span>.gpu);
+_chat = <span class="kw">await</span> model.<span class="fn">createChat</span>();
+
+<span class="cm">// Generate response</span>
+<span class="kw">await</span> _chat.<span class="fn">addQuery</span>(<span class="ty">Message</span>.<span class="fn">text</span>(text: prompt, isUser: <span class="kw">true</span>));
+<span class="kw">await for</span> (<span class="kw">final</span> chunk <span class="kw">in</span> _chat.<span class="fn">generateChatResponseAsync</span>()) {
+  <span class="kw">if</span> (chunk <span class="kw">is</span> <span class="ty">TextResponse</span>) <span class="kw">yield</span> chunk.token;
+}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px;">
+            <div class="warning-box">
+              <p><i class="fa-solid fa-triangle-exclamation icon-orange"></i> &nbsp;<strong>isUser: true</strong> is critical! Default is <code style="font-family: var(--mono-font);">false</code> &rarr; empty responses</p>
+            </div>
+            <div class="card">
+              <h3><i class="fa-solid fa-toggle-on icon-secondary"></i> UI: SegmentedButton</h3>
+              <p>Cloud / Local mode picker</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-5-hybrid">
+        <p class="step-badge">Step 5</p>
+        <h2>Hybrid Strategy &mdash; HybridAIService</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <h3><i class="fa-solid fa-shuffle icon-secondary"></i> 4 Strategies</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                <div class="card" style="text-align: center; padding: 12px;">
+                  <p style="font-size: 13pt; margin: 0;"><strong style="color: var(--accent-green);">localFirst</strong></p>
+                  <p style="font-size: 11pt; margin: 4px 0 0 0;">Local &rarr; Cloud</p>
+                </div>
+                <div class="card" style="text-align: center; padding: 12px;">
+                  <p style="font-size: 13pt; margin: 0;"><strong style="color: var(--secondary-color);">cloudFirst</strong></p>
+                  <p style="font-size: 11pt; margin: 4px 0 0 0;">Cloud &rarr; Local</p>
+                </div>
+                <div class="card" style="text-align: center; padding: 12px;">
+                  <p style="font-size: 13pt; margin: 0;"><strong style="color: var(--accent-orange);">localOnly</strong></p>
+                  <p style="font-size: 11pt; margin: 4px 0 0 0;">Offline mode</p>
+                </div>
+                <div class="card" style="text-align: center; padding: 12px;">
+                  <p style="font-size: 13pt; margin: 0;"><strong style="color: var(--primary-color);">cloudOnly</strong></p>
+                  <p style="font-size: 11pt; margin: 4px 0 0 0;">Cloud only</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3><i class="fa-solid fa-code icon-primary"></i> Fallback Pattern</h3>
+              <div class="code-block" style="font-size: 11pt;"><span class="kw">case</span> <span class="ty">AIStrategy</span>.localFirst:
+  <span class="kw">try</span> {
+    <span class="kw">yield*</span> local.<span class="fn">generateResponseStream</span>(prompt);
+  } <span class="kw">catch</span> (e) {
+    <span class="kw">yield*</span> cloud.<span class="fn">generateResponseStream</span>(prompt);
+  }</div>
+            </div>
+          </div>
+          <div style="margin-top: 14px;">
+            <div class="card">
+              <h3><i class="fa-solid fa-gamepad icon-green"></i> UI: 4-option SegmentedButton</h3>
+              <p>Cloud | Local | Local+Cloud | Cloud+Local &mdash; <code style="font-family: var(--mono-font); color: var(--accent-green);">yield*</code> forwards the entire stream, <code style="font-family: var(--mono-font); color: var(--accent-green);">try/catch</code> switches to fallback</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-6-embeddings">
+        <p class="step-badge">Step 6</p>
+        <h2>Embeddings + VectorStore</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <h3><i class="fa-solid fa-download icon-secondary"></i> Install &amp; Load</h3>
+              <div class="code-block" style="font-size: 11pt;"><span class="cm">// Install embedding model</span>
+<span class="kw">await</span> <span class="ty">FlutterGemma</span>.<span class="fn">installEmbedder</span>()
+  .<span class="fn">modelFromNetwork</span>(modelUrl, token: hfToken)
+  .<span class="fn">tokenizerFromNetwork</span>(tokenizerUrl, token: hfToken)
+  .<span class="fn">install</span>();
+
+<span class="cm">// Initialize VectorStore (SQLite)</span>
+<span class="kw">await</span> <span class="ty">FlutterGemmaPlugin</span>.instance
+  .<span class="fn">initializeVectorStore</span>(<span class="str">'rag.db'</span>);
+
+<span class="cm">// Load docs (auto-embeds!)</span>
+<span class="kw">await</span> <span class="ty">FlutterGemmaPlugin</span>.instance.<span class="fn">addDocument</span>(
+  id: <span class="str">'paris'</span>,
+  content: description,
+  metadata: jsonEncode({<span class="str">'city'</span>: <span class="str">'Paris'</span>}),
+);</div>
+            </div>
+            <div>
+              <h3><i class="fa-solid fa-diagram-project icon-primary"></i> How Embeddings Work</h3>
+              <div style="margin-top: 8px;">
+                <div class="card" style="margin-bottom: 8px;">
+                  <p style="font-size: 13pt; margin: 0; font-family: var(--mono-font);">
+                    <span style="color: var(--accent-green);">"cat"</span> &nbsp;&rarr;&nbsp; [0.2, 0.8, 0.1, ...]
+                  </p>
+                </div>
+                <div class="card" style="margin-bottom: 8px;">
+                  <p style="font-size: 13pt; margin: 0; font-family: var(--mono-font);">
+                    <span style="color: var(--accent-green);">"kitten"</span> &rarr;&nbsp; [0.3, 0.7, 0.2, ...] <span style="color: var(--accent-green);">~ similar!</span>
+                  </p>
+                </div>
+                <div class="card" style="margin-bottom: 8px;">
+                  <p style="font-size: 13pt; margin: 0; font-family: var(--mono-font);">
+                    <span style="color: var(--accent-orange);">"car"</span> &nbsp;&nbsp;&rarr;&nbsp; [0.9, 0.1, 0.7, ...] <span style="color: var(--accent-orange);">~ different</span>
+                  </p>
+                </div>
+              </div>
+              <div class="card" style="margin-top: 12px;">
+                <h3><i class="fa-solid fa-globe icon-green"></i> 10 Cities Loaded</h3>
+                <p style="font-size: 12pt;">Paris, Tokyo, New York, Barcelona, Istanbul, Sydney, Rio, Marrakech, Prague, Singapore</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="slide-7-rag">
+        <p class="step-badge">Step 7</p>
+        <h2>RAG: Query + Generation</h2>
+        <div class="content">
+          <div style="margin-bottom: 12px;">
+            <h3><i class="fa-solid fa-diagram-project icon-secondary"></i> RAG Pipeline</h3>
+            <div class="pipeline">
+              <div class="pipeline-step"><i class="fa-solid fa-comment"></i> Query</div>
+              <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="pipeline-step"><i class="fa-solid fa-vector-square"></i> Embed</div>
+              <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="pipeline-step"><i class="fa-solid fa-magnifying-glass"></i> Search</div>
+              <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="pipeline-step"><i class="fa-solid fa-file-lines"></i> Context</div>
+              <div class="pipeline-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="pipeline-step" style="border-color: var(--primary-color);"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <div class="code-block" style="font-size: 11pt;"><span class="cm">// Search (auto-embeds query)</span>
+<span class="kw">final</span> results = <span class="kw">await</span> plugin.<span class="fn">searchSimilar</span>(
+  query: prompt, topK: <span class="num">3</span>, threshold: <span class="num">0.5</span>,
+);
+
+<span class="cm">// Build augmented prompt</span>
+<span class="kw">final</span> context = results
+    .map((r) =&gt; r.content).join(<span class="str">'\n\n'</span>);
+<span class="kw">final</span> augmented =
+  <span class="str">'Based on: $context\n\nAnswer: $query'</span>;
+
+<span class="cm">// Generate with context</span>
+<span class="kw">await</span> _chat.<span class="fn">addQuery</span>(
+  <span class="ty">Message</span>.<span class="fn">text</span>(text: augmented, isUser: <span class="kw">true</span>));</div>
+            </div>
+            <div>
+              <h3><i class="fa-solid fa-flask icon-green"></i> Demo Queries</h3>
+              <table>
+                <thead>
+                  <tr><th>Query</th><th>Source</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td style="font-size: 12pt;">Cherry blossoms?</td><td style="font-size: 12pt;">Tokyo</td></tr>
+                  <tr><td style="font-size: 12pt;">Mediterranean food?</td><td style="font-size: 12pt;">Barcelona</td></tr>
+                  <tr><td style="font-size: 12pt;">Ancient architecture?</td><td style="font-size: 12pt;">Prague, Istanbul</td></tr>
+                  <tr><td style="font-size: 12pt;">Beach vacation?</td><td style="font-size: 12pt;">Rio, Sydney</td></tr>
+                </tbody>
+              </table>
+              <div class="card" style="margin-top: 10px;">
+                <h3><i class="fa-solid fa-toggle-on icon-orange"></i> UI</h3>
+                <p style="font-size: 12pt;">RAG toggle (Switch) + Sources banner showing matched cities</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/chart/plugin.js"></script>
+  <script>
+    Reveal.initialize({
+      width: 1280,
+      height: 720,
+      margin: 0,
+      controls: true,
+      progress: true,
+      slideNumber: false,
+      hash: true,
+      transition: 'slide',
+      center: false,
+      plugins: [ RevealChart ],
+      chart: {
+        defaults: Object.assign({
+          color: 'rgba(0, 0, 0, 0.8)',
+          borderColor: 'rgba(0, 0, 0, 0.8)',
+          devicePixelRatio: 2
+        }, window.location.search.includes('export') ? { animation: false } : {})
+      }
+    });
+  </script>
+</body>
+</html>
