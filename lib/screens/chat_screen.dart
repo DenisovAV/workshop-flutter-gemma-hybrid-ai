@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
-import '../services/ai_service.dart';
 import '../services/firebase_ai_service.dart';
-import '../services/local_ai_service.dart';
 import '../widgets/message_bubble.dart';
-
-enum AIMode { cloud, local }
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -20,13 +16,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messages = <ChatMessage>[];
   bool _isGenerating = false;
   bool _isInitializing = true;
-  double _downloadProgress = 0;
   String _statusMessage = 'Initializing...';
 
-  late final FirebaseAIService _cloudService;
-  late final LocalAIService _localService;
-
-  AIMode _mode = AIMode.cloud;
+  late final FirebaseAIService _aiService;
 
   @override
   void initState() {
@@ -35,19 +27,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initServices() async {
-    _cloudService = FirebaseAIService();
-    _localService = LocalAIService();
+    _aiService = FirebaseAIService();
 
     try {
       setState(() => _statusMessage = 'Connecting to cloud AI...');
-      await _cloudService.initialize();
-
-      setState(() => _statusMessage = 'Downloading local model...');
-      await _localService.initialize(
-        onProgress: (progress) {
-          setState(() => _downloadProgress = progress);
-        },
-      );
+      await _aiService.initialize();
 
       setState(() {
         _isInitializing = false;
@@ -56,7 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       setState(() {
         _isInitializing = false;
-        _statusMessage = 'Ready (some services may be unavailable)';
+        _statusMessage = 'Error: $e';
       });
     }
   }
@@ -65,8 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    _cloudService.dispose();
-    _localService.dispose();
+    _aiService.dispose();
     super.dispose();
   }
 
@@ -81,9 +64,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
   }
-
-  AIService get _activeService =>
-      _mode == AIMode.cloud ? _cloudService : _localService;
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
@@ -101,7 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final buffer = StringBuffer();
       await for (final chunk
-          in _activeService.generateResponseStream(text)) {
+          in _aiService.generateResponseStream(text)) {
         buffer.write(chunk);
         setState(() {
           _messages.last = ChatMessage(
@@ -132,29 +112,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Mode picker
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: SegmentedButton<AIMode>(
-              segments: const [
-                ButtonSegment(
-                  value: AIMode.cloud,
-                  label: Text('Cloud'),
-                  icon: Icon(Icons.cloud),
-                ),
-                ButtonSegment(
-                  value: AIMode.local,
-                  label: Text('Local'),
-                  icon: Icon(Icons.phone_android),
-                ),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (selected) {
-                setState(() => _mode = selected.first);
-              },
-            ),
-          ),
-
           // Initialization progress
           if (_isInitializing)
             Padding(
@@ -163,9 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Text(_statusMessage),
                   const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                      value:
-                          _downloadProgress > 0 ? _downloadProgress : null),
+                  const LinearProgressIndicator(),
                 ],
               ),
             ),
