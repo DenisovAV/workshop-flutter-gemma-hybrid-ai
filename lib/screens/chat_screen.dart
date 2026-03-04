@@ -4,7 +4,7 @@ import '../services/ai_service.dart';
 import '../services/firebase_ai_service.dart';
 import '../services/hybrid_ai_service.dart';
 import '../services/local_ai_service.dart';
-import '../services/rag_service.dart';
+
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -25,8 +25,6 @@ class _ChatScreenState extends State<ChatScreen> {
   late final FirebaseAIService _cloudService;
   late final LocalAIService _localService;
   late final HybridAIService _hybridService;
-  late final RagService _ragService;
-
   AIStrategy _strategy = AIStrategy.cloudOnly;
 
   @override
@@ -42,8 +40,6 @@ class _ChatScreenState extends State<ChatScreen> {
       local: _localService,
       cloud: _cloudService,
     );
-    _ragService = RagService();
-
     try {
       setState(() => _statusMessage = 'Connecting to cloud AI...');
       await _cloudService.initialize();
@@ -55,20 +51,11 @@ class _ChatScreenState extends State<ChatScreen> {
         },
       );
 
-      setState(() => _statusMessage = 'Setting up RAG...');
-      await _ragService.initialize(
-        onStatus: (status) {
-          setState(() => _statusMessage = status);
-        },
-      );
-
-      final docCount = await _ragService.getDocumentCount();
-
       setState(() {
         _isInitializing = false;
         _strategy = AIStrategy.localFirst;
         _hybridService.strategy = _strategy;
-        _statusMessage = 'Ready ($docCount documents loaded)';
+        _statusMessage = 'Ready';
       });
     } catch (e) {
       setState(() {
