@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 import '../services/ai_service.dart';
 import '../services/firebase_ai_service.dart';
-import '../services/hybrid_ai_service.dart';
 import '../services/local_ai_service.dart';
+import '../widgets/message_bubble.dart';
 
+enum AIMode { cloud, local }
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -24,8 +25,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   late final FirebaseAIService _cloudService;
   late final LocalAIService _localService;
-  late final HybridAIService _hybridService;
-  AIStrategy _strategy = AIStrategy.cloudOnly;
+
+  AIMode _mode = AIMode.cloud;
 
   @override
   void initState() {
@@ -36,10 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _initServices() async {
     _cloudService = FirebaseAIService();
     _localService = LocalAIService();
-    _hybridService = HybridAIService(
-      local: _localService,
-      cloud: _cloudService,
-    );
+
     try {
       setState(() => _statusMessage = 'Connecting to cloud AI...');
       await _cloudService.initialize();
@@ -53,8 +51,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
       setState(() {
         _isInitializing = false;
-        _strategy = AIStrategy.localFirst;
-        _hybridService.strategy = _strategy;
         _statusMessage = 'Ready';
       });
     } catch (e) {
@@ -69,7 +65,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    _hybridService.dispose();
+    _cloudService.dispose();
+    _localService.dispose();
     super.dispose();
   }
 
@@ -85,7 +82,8 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  AIService get _activeService => _hybridService;
+  AIService get _activeService =>
+      _mode == AIMode.cloud ? _cloudService : _localService;
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
@@ -125,13 +123,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _onStrategyChanged(AIStrategy strategy) {
-    setState(() {
-      _strategy = strategy;
-      _hybridService.strategy = strategy;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,35 +132,25 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Strategy picker
+          // Mode picker
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: SegmentedButton<AIStrategy>(
+            child: SegmentedButton<AIMode>(
               segments: const [
                 ButtonSegment(
-                  value: AIStrategy.cloudOnly,
+                  value: AIMode.cloud,
                   label: Text('Cloud'),
                   icon: Icon(Icons.cloud),
                 ),
                 ButtonSegment(
-                  value: AIStrategy.localOnly,
+                  value: AIMode.local,
                   label: Text('Local'),
                   icon: Icon(Icons.phone_android),
                 ),
-                ButtonSegment(
-                  value: AIStrategy.localFirst,
-                  label: Text('Local+Cloud'),
-                  icon: Icon(Icons.swap_horiz),
-                ),
-                ButtonSegment(
-                  value: AIStrategy.cloudFirst,
-                  label: Text('Cloud+Local'),
-                  icon: Icon(Icons.swap_horiz),
-                ),
               ],
-              selected: {_strategy},
+              selected: {_mode},
               onSelectionChanged: (selected) {
-                _onStrategyChanged(selected.first);
+                setState(() => _mode = selected.first);
               },
             ),
           ),
