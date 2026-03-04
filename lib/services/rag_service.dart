@@ -72,60 +72,8 @@ class RagService {
     }
   }
 
-  Future<RagResult> searchAndBuildContext(String query) async {
-    if (!_isInitialized) {
-      throw StateError('RagService not initialized');
-    }
-
-    final results = await FlutterGemmaPlugin.instance.searchSimilar(
-      query: query,
-      topK: 3,
-      threshold: 0.5,
-    );
-
-    if (results.isEmpty) {
-      return RagResult(
-        augmentedPrompt: query,
-        retrievedContext: '',
-        sources: [],
-      );
-    }
-
-    final context = results.map((r) => r.content).join('\n\n');
-    final sources = results.map((r) {
-      final metadata = r.metadata != null
-          ? jsonDecode(r.metadata!) as Map<String, dynamic>
-          : <String, dynamic>{};
-      return '${metadata['city'] ?? r.id} (${(r.similarity * 100).toStringAsFixed(0)}%)';
-    }).toList();
-
-    final augmentedPrompt =
-        'Based on the following travel information:\n\n$context\n\n'
-        'Answer the question: $query';
-
-    return RagResult(
-      augmentedPrompt: augmentedPrompt,
-      retrievedContext: context,
-      sources: sources,
-    );
-  }
-
   Future<int> getDocumentCount() async {
     final stats = await FlutterGemmaPlugin.instance.getVectorStoreStats();
     return stats.documentCount;
   }
-}
-
-class RagResult {
-  final String augmentedPrompt;
-  final String retrievedContext;
-  final List<String> sources;
-
-  const RagResult({
-    required this.augmentedPrompt,
-    required this.retrievedContext,
-    required this.sources,
-  });
-
-  bool get hasContext => retrievedContext.isNotEmpty;
 }

@@ -5,7 +5,6 @@ import '../services/firebase_ai_service.dart';
 import '../services/hybrid_ai_service.dart';
 import '../services/local_ai_service.dart';
 import '../services/rag_service.dart';
-import '../widgets/message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -29,8 +28,6 @@ class _ChatScreenState extends State<ChatScreen> {
   late final RagService _ragService;
 
   AIStrategy _strategy = AIStrategy.cloudOnly;
-  bool _ragEnabled = false;
-  List<String> _lastRagSources = [];
 
   @override
   void initState() {
@@ -113,25 +110,13 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add(ChatMessage(text: text, isUser: true));
       _messages.add(ChatMessage(text: '', isUser: false));
       _isGenerating = true;
-      _lastRagSources = [];
     });
     _scrollToBottom();
 
     try {
-      String prompt = text;
-
-      // RAG: search for relevant context
-      if (_ragEnabled && _ragService.isInitialized) {
-        final ragResult = await _ragService.searchAndBuildContext(text);
-        if (ragResult.hasContext) {
-          prompt = ragResult.augmentedPrompt;
-          setState(() => _lastRagSources = ragResult.sources);
-        }
-      }
-
       final buffer = StringBuffer();
       await for (final chunk
-          in _activeService.generateResponseStream(prompt)) {
+          in _activeService.generateResponseStream(text)) {
         buffer.write(chunk);
         setState(() {
           _messages.last = ChatMessage(
@@ -166,21 +151,6 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: const Text('AI Chat'),
         centerTitle: true,
-        actions: [
-          // RAG toggle
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('RAG', style: TextStyle(fontSize: 12)),
-              Switch(
-                value: _ragEnabled,
-                onChanged: _ragService.isInitialized
-                    ? (value) => setState(() => _ragEnabled = value)
-                    : null,
-              ),
-            ],
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -216,34 +186,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-
-          // RAG sources
-          if (_lastRagSources.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              color: Theme.of(context).colorScheme.tertiaryContainer,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onTertiaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Sources: ${_lastRagSources.join(', ')}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            Theme.of(context).colorScheme.onTertiaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           // Initialization progress
           if (_isInitializing)
