@@ -317,7 +317,7 @@ In `pubspec.yaml`, uncomment:
 
 ```yaml
   # Step 4: Local AI
-  flutter_gemma: ^0.11.12
+  flutter_gemma: ^0.12.4
 ```
 
 ```bash
@@ -361,7 +361,7 @@ Add to `web/index.html` before `</body>`:
 ```html
 <script type="module">
 import { FilesetResolver, LlmInference } from
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@0.10.24';
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@latest';
 window.FilesetResolver = FilesetResolver;
 window.LlmInference = LlmInference;
 </script>
@@ -382,7 +382,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'ai_service.dart';
 
 const String _modelUrl =
-    'https://huggingface.co/aspect-build/gemma-3-1b-it-tflite/resolve/main/gemma3-1b-it-int4.task';
+    'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task';
 const String _hfToken = 'YOUR_HF_TOKEN_HERE'; // <-- paste your token here
 
 class LocalAIService implements AIService {
@@ -619,9 +619,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 
 const String _embeddingModelUrl =
-    'https://huggingface.co/aspect-build/embedding-gemma/resolve/main/embedding-gemma.tflite';
+    'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq256_mixed-precision.tflite';
 const String _tokenizerUrl =
-    'https://huggingface.co/aspect-build/embedding-gemma/resolve/main/tokenizer.json';
+    'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/sentencepiece.model';
 const String _hfToken = 'YOUR_HF_TOKEN_HERE';
 
 const List<String> _cityFiles = [

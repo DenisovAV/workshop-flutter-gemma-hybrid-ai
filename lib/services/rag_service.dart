@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 
 const String _embeddingModelUrl =
-    'https://huggingface.co/aspect-build/embedding-gemma/resolve/main/embedding-gemma.tflite';
+    'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq256_mixed-precision.tflite';
 const String _tokenizerUrl =
-    'https://huggingface.co/aspect-build/embedding-gemma/resolve/main/tokenizer.json';
+    'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/sentencepiece.model';
 const String _hfToken = 'YOUR_HF_TOKEN_HERE';
 
 const List<String> _cityFiles = [

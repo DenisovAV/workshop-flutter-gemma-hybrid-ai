@@ -2,7 +2,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'ai_service.dart';
 
 const String _modelUrl =
-    'https://huggingface.co/aspect-build/gemma-3-1b-it-tflite/resolve/main/gemma3-1b-it-int4.task';
+    'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task';
 const String _hfToken = 'YOUR_HF_TOKEN_HERE';
 
 class LocalAIService implements AIService {
